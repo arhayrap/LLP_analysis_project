@@ -1,0 +1,4 @@
+/eos/cms/store/group/phys_susy/razor/run2/temp/displacedJetMuon/STAU_ctau10000/displacedJetMuon_ntupler.root
+/eos/cms/store/group/phys_susy/razor/run2/temp/displacedJetMuon/STAU_ctau1000/displacedJetMuon_ntupler.root
+/eos/cms/store/group/phys_susy/razor/run2/temp/displacedJetMuon/STAU_ctau30000/displacedJetMuon_ntupler.root
+/eos/cms/store/group/phys_susy/razor/run2/temp/displacedJetMuon/STAU_ctau3000/displacedJetMuon_ntupler.root
