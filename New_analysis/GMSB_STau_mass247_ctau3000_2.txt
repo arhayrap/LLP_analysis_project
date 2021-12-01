@@ -1,0 +1,2 @@
+/eos/user/a/arhayrap/LLP_files/GMSB_STau_mass247_ctau3000/displacedJetMuon_ntupler_1.root
+/eos/user/a/arhayrap/LLP_files/GMSB_STau_mass247_ctau3000/displacedJetMuon_ntupler_10.root

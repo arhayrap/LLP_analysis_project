@@ -144,7 +144,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
   //Set up Output File
   //-----------------------------------------------
   string outfilename = outputfilename;
-  if (outfilename == "") outfilename = "/eos/user/a/arhayrap/corrected_2_HSCP_Tree_NEW_CSC_DT.root";
+  if (outfilename == "") outfilename = "/eos/user/a/arhayrap/GMSB_STau_mass247_ctau1000.root";
   TFile * outFile;
   if (isData || !signalScan) outFile = new TFile(outfilename.c_str(), "RECREATE");
 
@@ -179,8 +179,9 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
   TNtuple * Matched_track = new TNtuple("Matched_tracks", "Matched_tracks", "pt:eta:phi:dr");
   TNtuple * Gen_part = new TNtuple("Gen particles", "Gen particles", "pt:eta:phi:mass");
   TNtuple * Gen_csc_dt = new TNtuple("Gen CSC DT", "Gen CSC DT", "pt:eta:phi:mass"); // matched stau
-  TNtuple * Gen_csc_dt_manual = new TNtuple("Gen CSC DT manual", "Gen CSC DT manual", "pt:eta:phi:dr_csc_1:dr_dt_1"); // manualy matched stau
-  TNtuple * Gen_csc_dt_manual_nomatch = new TNtuple("Gen CSC DT manual nomatch", "Gen CSC DT manual nomatch", "pt:eta:phi:dr_csc_2:dr_dt_2"); // manualy not matched stau
+  TNtuple * Gen_csc_dt_manual = new TNtuple("Gen CSC DT manual", "Gen CSC DT manual", "pt:eta:phi:dr_csc:dr_dt"); // manualy matched stau
+  TNtuple * Gen_csc_dt_manual_nomatch = new TNtuple("Gen CSC DT manual nomatch", "Gen CSC DT manual nomatch", "pt:eta:phi:dr_csc:dr_dt"); // manualy not matched stau
+  TNtuple * All_csc_dt_manual = new TNtuple("All CSC DT manual", "All CSC DT manual", "id:pt:eta:phi:dr"); // manualy matched gen part
 
   TH1F * Nmet200 = new TH1F("Nmet200", "Nmet200", 1, 1, 2);
   TH1F * NmetFilter = new TH1F("NmetFilter", "NmetFilter", 1, 1, 2);
@@ -328,10 +329,10 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
         MuonSystem -> nGenParticle++;
       }
       MuonSystem -> higgsPtWeight = helper -> getHiggsPtWeight(MuonSystem -> gHiggsPt);
-      /*for (unsigned int i = 0; i < 9; i++) {
-        MuonSystem -> higgsPtWeightSys[i] = helper -> getHiggsPtWeightSys(MuonSystem -> gHiggsPt, i) / MuonSystem -> higgsPtWeight;
-        MuonSystem -> scaleWeights[i] = ( * scaleWeights)[i] / genWeight;
-      }*/
+      //for (unsigned int i = 0; i < 9; i++) {
+        // MuonSystem -> higgsPtWeightSys[i] = helper -> getHiggsPtWeightSys(MuonSystem -> gHiggsPt, i) / MuonSystem -> higgsPtWeight;
+        //MuonSystem -> scaleWeights[i] = ( * scaleWeights)[i] / genWeight;
+      //}
       MuonSystem -> sf_facScaleUp = MuonSystem -> higgsPtWeightSys[5];
       MuonSystem -> sf_facScaleDown = MuonSystem -> higgsPtWeightSys[3];
       MuonSystem -> sf_renScaleUp = MuonSystem -> higgsPtWeightSys[7];
@@ -540,7 +541,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
             double phi_dist2 = fabs(STau_2_PHI - cscRechitClusterPhi[ii]);
             if (phi_dist2 > 3.1415) phi_dist2 = 6.283 - phi_dist2;
             double distt2 = sqrt(pow(STau_2_ETA - cscRechitClusterEta[ii], 2) + pow(phi_dist2, 2));
-            printf("%10.3f %10.3f %10.3f %10.3f %10.3f \n", cscRechitClusterJetVetoPt[ii], cscRechitClusterEta[ii], cscRechitClusterPhi[ii], distt1, distt2);
+            printf("%10d %10.3f %10.3f %10.3f %10.3f %10.3f \n", cscRechitCluster_match_gParticle_id[ii], cscRechitClusterJetVetoPt[ii], cscRechitClusterEta[ii], cscRechitClusterPhi[ii], distt1, distt2);
           }
 
           cout << endl << endl << "----------------------- DT Clusters --------------------" << endl << endl;
@@ -553,14 +554,57 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
             double phi_dist2 = fabs(STau_2_PHI - dtRechitClusterPhi[ii]);
             if (phi_dist2 > 3.1415) phi_dist2 = 6.283 - phi_dist2;
             double distt2 = sqrt(pow(STau_2_ETA - dtRechitClusterEta[ii], 2) + pow(phi_dist2, 2));
-            printf("%10.3f %10.3f %10.3f %10.3f %10.3f \n", dtRechitClusterJetVetoPt[ii], dtRechitClusterEta[ii], dtRechitClusterPhi[ii], distt1, distt2);
+            printf("%10d %10.3f %10.3f %10.3f %10.3f %10.3f \n", dtRechitCluster_match_gParticle_id[ii], dtRechitClusterJetVetoPt[ii], dtRechitClusterEta[ii], dtRechitClusterPhi[ii], distt1, distt2);
           }
           cout << endl << endl << "--------------------- Number of hits ------------------" << endl << endl;
           cout << "ncscRechits" << "        " << "nDtRechits" << endl;
           cout << ncscRechits << "        " << nDtRechits << endl;
 
           if (STau1_InMuonSystem || STau2_InMuonSystem) {
+	    //All_csc_dt_manual
 
+            for (int i = 0; i < nCscRechitClusters; i++) {
+              float dist_cluster_csc = 0.5;
+              int matched_csc = -100;
+              for (int j = 0; j < nGenParticle; j++) {
+                // if (cscRechitClusterJetVetoPt[i] < 5.0) continue;
+                if (gParticleMotherId[j] != 1000015) continue;
+                float deltaPhi = fabs(cscRechitClusterPhi[i] - gParticlePhi[j]);
+                float deltaEta = cscRechitClusterEta[i] - gParticleEta[j];
+                if (deltaPhi > 3.1415) deltaPhi = 6.283 - deltaPhi;
+                float deltaR = sqrt(pow(deltaPhi, 2) + pow(deltaEta, 2));
+                if (deltaR < dist_cluster_csc) {
+                  dist_cluster_csc = deltaR;
+                  matched_csc = i;
+                }
+              }
+              if (dist_cluster_csc < 0.5) {
+                cout<<gParticlePt[matched_csc]<<"   "<<gParticleEta[matched_csc]<<"   "<<gParticlePhi[matched_csc]<<endl;
+                All_csc_dt_manual -> Fill(gParticleId[matched_csc], gParticlePt[matched_csc], gParticleEta[matched_csc], gParticlePhi[matched_csc], dist_cluster_csc);
+              }
+            }
+	    cout<<"csc manual and ready"<<"     "<<"dt manual and ready"<<endl;
+            for (int i = 0; i < nDtRechitClusters; i++) {
+              float dist_cluster_dt = 0.5;
+              int matched_dt = -100;
+              for (int j = 0; j < nGenParticle; j++) {
+                // if (dtRechitClusterJetVetoPt[i] < 5.0) continue;
+                if (gParticleMotherId[j] != 1000015) continue;
+                float deltaPhi = fabs(dtRechitClusterPhi[i] - gParticlePhi[j]);
+                float deltaEta = dtRechitClusterEta[i] - gParticleEta[j];
+                if (deltaPhi > 3.1415) deltaPhi = 6.283 - deltaPhi;
+                float deltaR = sqrt(pow(deltaPhi, 2) + pow(deltaEta, 2));
+                if (deltaR < dist_cluster_dt) {
+                  dist_cluster_dt = deltaR;
+                  matched_dt = i;
+                }
+              }
+              if (dist_cluster_dt < 0.5) {
+                cout<<gParticlePt[matched_dt]<<"   "<<gParticleEta[matched_dt]<<"   "<<gParticlePhi[matched_dt]<<endl;
+                All_csc_dt_manual -> Fill(gParticleId[matched_dt], gParticlePt[matched_dt], gParticleEta[matched_dt], gParticlePhi[matched_dt], dist_cluster_dt);
+              }
+            }
+            /*
             for (int i = 0; i < nCscRechitClusters; i++) {
               if (fabs(gParticleId[cscRechitCluster_match_gParticle_index[i]]) != 1000015) continue;
               if (cscRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
@@ -568,6 +612,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
               float py_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
               float pz_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[cscRechitCluster_match_gParticle_index[i]]);
               float mass_matched = sqrt(pow(gParticleE[cscRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+              cout<<gParticlePt[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[cscRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
               Gen_csc_dt -> Fill(gParticlePt[cscRechitCluster_match_gParticle_index[i]], gParticleEta[cscRechitCluster_match_gParticle_index[i]], gParticlePhi[cscRechitCluster_match_gParticle_index[i]], mass_matched);
             }
 
@@ -578,9 +623,12 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
               float py_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
               float pz_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[dtRechitCluster_match_gParticle_index[i]]);
               float mass_matched = sqrt(pow(gParticleE[dtRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+              cout<<gParticlePt[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[dtRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
               Gen_csc_dt -> Fill(gParticlePt[dtRechitCluster_match_gParticle_index[i]], gParticleEta[dtRechitCluster_match_gParticle_index[i]], gParticlePhi[dtRechitCluster_match_gParticle_index[i]], mass_matched);
             }
-
+            */
+            
+            cout<<endl<<endl;
             // Closeset Track to STau_1
             int Index_Matched_To_STau_1 = -100;
             double dist_To_STau_1 = 0.5;
@@ -651,10 +699,57 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
             int matched_dt_2 = -100;
             double dist_cluster_csc_2 = 0.5;
             double dist_cluster_dt_2 = 0.5;
+            /*
+            for (int i = 0; i < nCscRechitClusters; i++) {
+                if (fabs(cscRechitCluster_match_gParticle_id[i]) != 1000015) continue;
+                if (cscRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                // cout<<cscRechitCluster_match_gParticle_id[i]<<endl;
+                float px_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[cscRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[cscRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[cscRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[cscRechitCluster_match_gParticle_index[i]], gParticleEta[cscRechitCluster_match_gParticle_index[i]], gParticlePhi[cscRechitCluster_match_gParticle_index[i]], mass_matched);
+            }
+            
+            for (int i = 0; i < nDtRechitClusters; i++) {
+                if (fabs(dtRechitCluster_match_gParticle_id[i]) != 1000015) continue;
+                if (dtRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                float px_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[dtRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[dtRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[dtRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[dtRechitCluster_match_gParticle_index[i]], gParticleEta[dtRechitCluster_match_gParticle_index[i]], gParticlePhi[dtRechitCluster_match_gParticle_index[i]], mass_matched);
+            }
+            */
             if (STau1_InMuonSystem && STau_1_PT > 0.0 /*&& Index_Matched_To_STau_1 >= 0*/ ) {
-
+              
               for (int i = 0; i < nCscRechitClusters; i++) {
-                //                            if (cscRechitClusterJetVetoPt[i] < 5.0) continue;
+                if (cscRechitCluster_match_gParticle_id[i] != 1000015) continue;
+                if (cscRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                // cout<<cscRechitCluster_match_gParticle_index[i]<<endl;
+                float px_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[cscRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[cscRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[cscRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[cscRechitCluster_match_gParticle_index[i]], gParticleEta[cscRechitCluster_match_gParticle_index[i]], gParticlePhi[cscRechitCluster_match_gParticle_index[i]], mass_matched);
+              }
+              
+              for (int i = 0; i < nDtRechitClusters; i++) {
+                if (dtRechitCluster_match_gParticle_id[i] != 1000015) continue;
+                if (dtRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                float px_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[dtRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[dtRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[dtRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[dtRechitCluster_match_gParticle_index[i]], gParticleEta[dtRechitCluster_match_gParticle_index[i]], gParticlePhi[dtRechitCluster_match_gParticle_index[i]], mass_matched);
+              }
+              
+              for (int i = 0; i < nCscRechitClusters; i++) {
+                // if (cscRechitClusterJetVetoPt[i] < 5.0) continue;
                 float deltaPhi = fabs(cscRechitClusterPhi[i] - STau_1_PHI);
                 float deltaEta = cscRechitClusterEta[i] - STau_1_ETA;
                 if (deltaPhi > 3.1415) deltaPhi = 6.283 - deltaPhi;
@@ -666,7 +761,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
               }
 
               for (int i = 0; i < nDtRechitClusters; i++) {
-                //                            if (dtRechitClusterJetVetoPt[i] < 5.0) continue;
+                // if (dtRechitClusterJetVetoPt[i] < 5.0) continue;
                 float deltaPhi = fabs(dtRechitClusterPhi[i] - STau_1_PHI);
                 float deltaEta = dtRechitClusterEta[i] - STau_1_ETA;
                 if (deltaPhi > 3.1415) deltaPhi = 6.283 - deltaPhi;
@@ -688,6 +783,30 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
               int matched_dt_2 = -100;
               double dist_cluster_csc_2 = 0.5;
               double dist_cluster_dt_2 = 0.5;
+              
+              for (int i = 0; i < nCscRechitClusters; i++) {
+                if (cscRechitCluster_match_gParticle_id[i] != -1000015) continue;
+                if (cscRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                cout<<cscRechitCluster_match_gParticle_index[i]<<endl;
+                float px_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[cscRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[cscRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[cscRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[cscRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[cscRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[cscRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[cscRechitCluster_match_gParticle_index[i]], gParticleEta[cscRechitCluster_match_gParticle_index[i]], gParticlePhi[cscRechitCluster_match_gParticle_index[i]], mass_matched);
+              }
+              
+              for (int i = 0; i < nDtRechitClusters; i++) {
+                if (dtRechitCluster_match_gParticle_id[i] != -1000015) continue;
+                if (dtRechitCluster_match_gParticle_minDeltaR[i] > 0.5) continue;
+                float px_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * cos(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float py_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sin(gParticlePhi[dtRechitCluster_match_gParticle_index[i]]);
+                float pz_matched = gParticlePt[dtRechitCluster_match_gParticle_index[i]] * sinh(gParticleEta[dtRechitCluster_match_gParticle_index[i]]);
+                float mass_matched = sqrt(pow(gParticleE[dtRechitCluster_match_gParticle_index[i]], 2) - pow(px_matched, 2) - pow(py_matched, 2) - pow(pz_matched, 2));
+                cout<<gParticlePt[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticleEta[dtRechitCluster_match_gParticle_index[i]]<<"   "<<gParticlePhi[dtRechitCluster_match_gParticle_index[i]]<<"   "<<mass_matched<<endl;
+                Gen_csc_dt -> Fill(gParticlePt[dtRechitCluster_match_gParticle_index[i]], gParticleEta[dtRechitCluster_match_gParticle_index[i]], gParticlePhi[dtRechitCluster_match_gParticle_index[i]], mass_matched);
+              }
+              
               for (int i = 0; i < nCscRechitClusters; i++) {
                 float deltaPhi = fabs(cscRechitClusterPhi[i] - STau_2_PHI);
                 float deltaEta = cscRechitClusterEta[i] - STau_2_ETA;
@@ -833,30 +952,28 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
 
     MuonSystem -> metXYCorr = corrected_met.first;
     MuonSystem -> metPhiXYCorr = corrected_met.second;
-    /*
-        if (!isData && !hnl_model) {
-          if (MuonSystem -> gLLP_csc[0] == false && MuonSystem -> gLLP_csc[1] == false) continue;
-        }
-    */
+    
+    if (!isData && !hnl_model) {
+      if (MuonSystem -> gLLP_csc[0] == false && MuonSystem -> gLLP_csc[1] == false) continue;
+    }
+    
     if (signalScan && !isData) accep2D[make_pair(MuonSystem -> mX, MuonSystem -> ctau)] -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight);
     else if (!isData) accep -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight);
-
-    /*
-        if (analysisTag == "Razor2016_07Aug2017Rereco" || analysisTag == "Razor2016_Source2018") {
-          MuonSystem -> METTrigger = HLTDecision[310] || HLTDecision[467];
-          MuonSystem -> METNoMuTrigger = HLTDecision[467];
-        } else {
-          MuonSystem -> METTrigger = HLTDecision[310] || HLTDecision[467] || HLTDecision[703] || HLTDecision[717] || HLTDecision[710] || HLTDecision[709];
-          MuonSystem -> METNoMuTrigger = HLTDecision[467] || HLTDecision[717] || HLTDecision[710];
-
-        }
-    */
-    // if (MuonSystem->met < 200 || !MuonSystem->METNoMuTrigger) continue;
-    /*
-        if (signalScan && !isData) accep_met2D[make_pair(MuonSystem -> mX, MuonSystem -> ctau)] -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight * MuonSystem -> metSF);
-        else if (!isData) accep_met -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight);
-        else Nmet200 -> Fill(1.0);
-    */
+    
+    if (analysisTag == "Razor2016_07Aug2017Rereco" || analysisTag == "Razor2016_Source2018") {
+      MuonSystem -> METTrigger = HLTDecision[310] || HLTDecision[467];
+      MuonSystem -> METNoMuTrigger = HLTDecision[467];
+    } else {
+      MuonSystem -> METTrigger = HLTDecision[310] || HLTDecision[467] || HLTDecision[703] || HLTDecision[717] || HLTDecision[710] || HLTDecision[709];
+      MuonSystem -> METNoMuTrigger = HLTDecision[467] || HLTDecision[717] || HLTDecision[710];
+    }
+    
+    if (MuonSystem->met < 200 || !MuonSystem->METNoMuTrigger) continue;
+    
+    if (signalScan && !isData) accep_met2D[make_pair(MuonSystem -> mX, MuonSystem -> ctau)] -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight * MuonSystem -> metSF);
+    else if (!isData) accep_met -> Fill(1.0, genWeight * MuonSystem -> higgsPtWeight * MuonSystem -> pileupWeight);
+    else Nmet200 -> Fill(1.0);
+    
     // flags
     MuonSystem -> Flag_HBHENoiseFilter = Flag_HBHENoiseFilter;
     MuonSystem -> Flag_HBHEIsoNoiseFilter = Flag_HBHEIsoNoiseFilter;
@@ -1141,7 +1258,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
           Jets.push_back(tmpJet);
         }
     */
-    /*
+    
         // cout<<"here"<<nJets<<endl;
 
         sort(Jets.begin(), Jets.end(), my_largest_pt_jet);
@@ -1187,7 +1304,6 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
         Njet1 -> Fill(1.0);
         MuonSystem -> jetMet_dPhiMin = jetMet_dPhiMin_temp;
         MuonSystem -> jetMet_dPhiMin4 = jetMet_dPhiMin4_temp;
-
         TLorentzVector PFMET = makeTLorentzVectorPtEtaPhiM(metType1Pt, 0, metType1Phi, 0);
 
         //JES up
@@ -1201,7 +1317,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
         float PFMetYJESDown = PFMET.Py() + MetYCorr_JESDown;
         MuonSystem -> metJESDown = sqrt(pow(PFMetXJESDown, 2) + pow(PFMetYJESDown, 2));
         MuonSystem -> metJESDownSF = helper -> getMetTriggerSF(MuonSystem -> metJESDown) / MuonSystem -> metSF;
-    */
+    
     cout << "met" << endl;
 
     // count dt rechits
@@ -1492,6 +1608,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
           MuonSystem -> cscRechitCluster3_match_gLLP_eta[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_eta[index];
           MuonSystem -> cscRechitCluster3_match_gLLP_phi[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_phi[index];
           MuonSystem -> cscRechitCluster3_match_gLLP_decay_r[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_decay_vertex_r[index];
+          cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& ->>>>>> "<<MuonSystem -> cscRechitCluster3_match_gLLP_decay_r[MuonSystem -> nCscRechitClusters3]<<endl;
           MuonSystem -> cscRechitCluster3_match_gLLP_decay_x[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_decay_vertex_x[index];
           MuonSystem -> cscRechitCluster3_match_gLLP_decay_y[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_decay_vertex_y[index];
           MuonSystem -> cscRechitCluster3_match_gLLP_decay_z[MuonSystem -> nCscRechitClusters3] = MuonSystem -> gLLP_decay_vertex_z[index];
@@ -1646,6 +1763,7 @@ void llp_corrected_3_HSCP_::Analyze(bool isData, int options, string outputfilen
     Gen_csc_dt -> Write();
     Gen_csc_dt_manual -> Write();
     Gen_csc_dt_manual_nomatch -> Write();
+    All_csc_dt_manual -> Write();
     accep -> Write("acceptance");
     accep_met -> Write("acceptance_met");
     outFile -> Close();

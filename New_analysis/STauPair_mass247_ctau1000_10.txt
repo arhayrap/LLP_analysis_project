@@ -1,0 +1,10 @@
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_100.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_101.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_102.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_103.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_104.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_105.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_106.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_107.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_108.root
+/eos/user/a/arhayrap/LLP_files/STauPair_mass247_ctau1000/displacedJetMuon_ntupler_109.root
